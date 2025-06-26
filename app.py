@@ -175,7 +175,7 @@ if loan_type == "Car Loan":
 
         st.plotly_chart(plot_loan_vs_car_value_chart(df, show_car_value=True), use_container_width=True)
 
-    else:
+else:
         df["Remaining Balance"] = df["Remaining Balance"].round(2)
         st.plotly_chart(plot_loan_vs_car_value_chart(df, show_car_value=False), use_container_width=True)
 
