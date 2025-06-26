@@ -168,6 +168,6 @@ if st.button("Calculate Loan"):
 
 st.dataframe(styled_df, use_container_width=True)
 
-    # Download CSV
-    csv = df.to_csv(index=False).encode('utf-8')
-    st.download_button("📥 Download CSV", data=csv, file_name="loan_schedule.csv", mime='text/csv')
+# Download CSV
+csv = df.to_csv(index=False).encode('utf-8')
+st.download_button("📥 Download CSV", data=csv, file_name="loan_schedule.csv", mime='text/csv')
