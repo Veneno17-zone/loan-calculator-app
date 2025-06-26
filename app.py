@@ -162,6 +162,9 @@ if st.button("Calculate Loan"):
     if loan_type == "Car Loan":
         car_values = calculate_car_value_over_time(total_price, depreciation_rate, months)
         df["Estimated Car Value"] = car_values
+        df["Estimated Car Value"] = pd.Series(car_values).round(2)
+        df["Remaining Balance"] = df["Remaining Balance"].round(2)
+
 
         # 🔔 Negative Equity Detection
         df["Negative Equity"] = df["Remaining Balance"] > df["Estimated Car Value"]
