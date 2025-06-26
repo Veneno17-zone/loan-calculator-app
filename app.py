@@ -163,8 +163,14 @@ if st.button("Calculate Loan"):
     # Highlight Negative Equity Months
     styled_df = df.style.apply(lambda x: ["background-color: #ffcdd2" if v else "" for v in x], subset=["Negative Equity"])
     styled_df = df.style \
-    .format({col: "{:,.2f}" for col in df.select_dtypes(include='number').columns}) \
-    .apply(lambda x: ["background-color: #ffcdd2" if v else "" for v in x], subset=["Negative Equity"] if "Negative Equity" in df.columns else [])
+    format_dict = {col: "{:,.2f}" for col in df.select_dtypes(include='number').columns}
+styled_df = df.style.format(format_dict)
+
+if "Negative Equity" in df.columns:
+    styled_df = styled_df.apply(
+        lambda x: ["background-color: #ffcdd2" if v else "" for v in x],
+        subset=["Negative Equity"]
+    )
 
 st.dataframe(styled_df, use_container_width=True)
 
