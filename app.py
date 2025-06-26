@@ -159,25 +159,25 @@ if st.button("Calculate Loan"):
     st.info(f"📦 Total paid (including fees): **${total_paid_including_fees:,.2f}**")
 
     # --- Car Depreciation & Chart ---
-   if loan_type == "Car Loan":
-    car_values = calculate_car_value_over_time(total_price, depreciation_rate, months)
-    df["Estimated Car Value"] = pd.Series(car_values).round(2)
+       if loan_type == "Car Loan":
+        car_values = calculate_car_value_over_time(total_price, depreciation_rate, months)
+        df["Estimated Car Value"] = pd.Series(car_values).round(2)
 
-    # 🔔 Negative Equity Detection
-    df["Remaining Balance"] = df["Remaining Balance"].round(2)
-    df["Negative Equity"] = df["Remaining Balance"] > df["Estimated Car Value"]
+        # 🔔 Negative Equity Detection
+        df["Remaining Balance"] = df["Remaining Balance"].round(2)
+        df["Negative Equity"] = df["Remaining Balance"] > df["Estimated Car Value"]
 
-    if df["Negative Equity"].any():
-        first_neg = df[df["Negative Equity"]].iloc[0]
-        st.warning(f"⚠️ You enter **negative equity in Month {first_neg['Month']} ({first_neg['Date']})**.")
+        if df["Negative Equity"].any():
+            first_neg = df[df["Negative Equity"]].iloc[0]
+            st.warning(f"⚠️ You enter **negative equity in Month {first_neg['Month']} ({first_neg['Date']})**.")
+        else:
+            st.success("✅ No negative equity during loan term.")
+
+        st.plotly_chart(plot_loan_vs_car_value_chart(df, show_car_value=True), use_container_width=True)
+
     else:
-        st.success("✅ No negative equity during loan term.")
-
-    st.plotly_chart(plot_loan_vs_car_value_chart(df, show_car_value=True), use_container_width=True)
-
-else:
-    df["Remaining Balance"] = df["Remaining Balance"].round(2)
-    st.plotly_chart(plot_loan_vs_car_value_chart(df, show_car_value=False), use_container_width=True)
+        df["Remaining Balance"] = df["Remaining Balance"].round(2)
+        st.plotly_chart(plot_loan_vs_car_value_chart(df, show_car_value=False), use_container_width=True)
 
 
     # --- Styled Table ---
