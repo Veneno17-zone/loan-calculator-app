@@ -159,7 +159,7 @@ if st.button("Calculate Loan"):
     st.info(f"📦 Total paid (including fees): **${total_paid_including_fees:,.2f}**")
 
     # --- Car Depreciation & Chart ---
-       if loan_type == "Car Loan":
+if loan_type == "Car Loan":
         car_values = calculate_car_value_over_time(total_price, depreciation_rate, months)
         df["Estimated Car Value"] = pd.Series(car_values).round(2)
 
