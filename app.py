@@ -93,11 +93,17 @@ def plot_loan_vs_car_value_chart(df, show_car_value=False):
 # ---------------------- Pie Chart ----------------------
 def plot_pie_chart(principal, interest):
     labels = ['Principal', 'Interest']
-    values = [principal, interest]
-    fig = go.Figure(data=[go.Pie(labels=labels, values=values, hole=0.4)])
+    values = [round(principal, 2), round(interest, 2)]
+    fig = go.Figure(data=[go.Pie(
+        labels=labels,
+        values=values,
+        hole=0.4,
+        hovertemplate='%{label}: $%{value:,.2f}<extra></extra>',
+        texttemplate='%{label}<br>$%{value:,.2f}',
+        textposition='inside'
+    )])
     fig.update_layout(title='💰 Loan Payment Breakdown', template='plotly_white')
     return fig
-
 # ---------------------- Streamlit UI ----------------------
 st.set_page_config(page_title="Loan Calculator", layout="wide")
 st.title("🚗🏠 Loan Payment Calculator")
