@@ -160,23 +160,22 @@ if st.button("Calculate Loan"):
 
     # --- Car Depreciation & Chart ---
     if loan_type == "Car Loan":
-        car_values = calculate_car_value_over_time(total_price, depreciation_rate, months)
-        df["Estimated Car Value"] = car_values
-        df["Estimated Car Value"] = pd.Series(car_values).round(2)
-        df["Remaining Balance"] = df["Remaining Balance"].round(2)
+    car_values = calculate_car_value_over_time(total_price, depreciation_rate, months)
+    df["Estimated Car Value"] = pd.Series(car_values).round(2)
+    df["Remaining Balance"] = df["Remaining Balance"].round(2)  # 🔵 Rounded loan balance
 
-
-        # 🔔 Negative Equity Detection
-        df["Negative Equity"] = df["Remaining Balance"] > df["Estimated Car Value"]
-        if df["Negative Equity"].any():
-            first_neg = df[df["Negative Equity"]].iloc[0]
-            st.warning(f"⚠️ You enter **negative equity in Month {first_neg['Month']} ({first_neg['Date']})**.")
-        else:
-            st.success("✅ No negative equity during loan term.")
-
-        st.plotly_chart(plot_loan_vs_car_value_chart(df, show_car_value=True), use_container_width=True)
+    # 🔔 Negative Equity Detection
+    df["Negative Equity"] = df["Remaining Balance"] > df["Estimated Car Value"]
+    if df["Negative Equity"].any():
+        first_neg = df[df["Negative Equity"]].iloc[0]
+        st.warning(f"⚠️ You enter **negative equity in Month {first_neg['Month']} ({first_neg['Date']})**.")
     else:
-        st.plotly_chart(plot_loan_vs_car_value_chart(df, show_car_value=False), use_container_width=True)
+        st.success("✅ No negative equity during loan term.")
+
+    st.plotly_chart(plot_loan_vs_car_value_chart(df, show_car_value=True), use_container_width=True)
+else:
+    df["Remaining Balance"] = df["Remaining Balance"].round(2)
+    st.plotly_chart(plot_loan_vs_car_value_chart(df, show_car_value=False), use_container_width=True)
 
     # --- Styled Table ---
     styled_df = df.style.background_gradient(cmap='Greens', subset=["Principal Paid"])\
