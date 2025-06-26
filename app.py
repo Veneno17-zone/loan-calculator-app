@@ -138,7 +138,7 @@ if st.button("Calculate Loan"):
 
     st.subheader(f"📆 Loan paid off in {months} months")
     st.write(f"💸 Total interest paid: ${total_interest:,.2f}")
-    
+
     if loan_type == "Car Loan":
         car_values = calculate_car_value_over_time(total_price, depreciation_rate, months)
         df["Estimated Car Value"] = pd.Series(car_values).round(2)
@@ -156,24 +156,22 @@ if st.button("Calculate Loan"):
         st.plotly_chart(plot_loan_vs_car_value_chart(df, show_car_value=True), use_container_width=True)
     else:
         df["Remaining Balance"] = df["Remaining Balance"].round(2)
-        st.plotly_chart(plot_loan_vs_car_value_chart(df), use_container_width=True)
+        st.plotly_chart(plot_loan_vs_car_value_chart(df, show_car_value=False), use_container_width=True)
 
     st.plotly_chart(plot_pie_chart(principal, total_interest), use_container_width=True)
 
-    # Highlight Negative Equity Months
-    styled_df = df.style.apply(lambda x: ["background-color: #ffcdd2" if v else "" for v in x], subset=["Negative Equity"])
-    styled_df = df.style \
+    # ✅ Format all float columns and highlight negative equity if available
     format_dict = {col: "{:,.2f}" for col in df.select_dtypes(include='number').columns}
-styled_df = df.style.format(format_dict)
+    styled_df = df.style.format(format_dict)
 
-if "Negative Equity" in df.columns:
-    styled_df = styled_df.apply(
-        lambda x: ["background-color: #ffcdd2" if v else "" for v in x],
-        subset=["Negative Equity"]
-    )
+    if "Negative Equity" in df.columns:
+        styled_df = styled_df.apply(
+            lambda x: ["background-color: #ffcdd2" if v else "" for v in x],
+            subset=["Negative Equity"]
+        )
 
-st.dataframe(styled_df, use_container_width=True)
+    st.dataframe(styled_df, use_container_width=True)
 
-# Download CSV
-csv = df.to_csv(index=False).encode('utf-8')
-st.download_button("📥 Download CSV", data=csv, file_name="loan_schedule.csv", mime='text/csv')
+    # 📥 Download CSV
+    csv = df.to_csv(index=False).encode('utf-8')
+    st.download_button("📥 Download CSV", data=csv, file_name="loan_schedule.csv", mime='text/csv')
