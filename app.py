@@ -118,18 +118,26 @@ start_date = st.date_input("Start Date", value=datetime.today())
 
 car_info = None
 if loan_type == "Car Loan":
-    make = st.selectbox("Make", get_car_makes())
-    model = st.selectbox("Model", get_models_for_make(make))
-    trims = get_trims_for_model(make, model)
-    trim_name = st.selectbox("Trim (Year)", [t[0] for t in trims])
-    selected_trim = next(t for t in trims if t[0] == trim_name)
-    msrp = float(selected_trim[3]) if selected_trim[3] else total_price
-    st.markdown(f"**MSRP from API:** ${msrp:,.2f}")
+    with st.spinner("Loading car data..."):
+        make = st.selectbox("Make", get_car_makes())
+        model_list = get_models_for_make(make)
+        if model_list:
+            model = st.selectbox("Model", model_list)
+            trims = get_trims_for_model(make, model)
+            if trims:
+                trim_name = st.selectbox("Trim (Year)", [t[0] for t in trims])
+                selected_trim = next(t for t in trims if t[0] == trim_name)
+                msrp = float(selected_trim[3]) if selected_trim[3] else total_price
+                st.markdown(f"**MSRP from API:** ${msrp:,.2f}")
+            else:
+                st.warning("No trims found for selected model.")
+        else:
+            st.warning("No models found for selected make.")
 
 if st.button("Calculate Loan"):
     df, interest, total_paid, months = calculate_amortization_schedule(principal, annual_rate, years, extra_payment, start_date.strftime("%Y-%m-%d"), fees, balloon)
 
-    if loan_type == "Car Loan" and msrp:
+    if loan_type == "Car Loan" and 'msrp' in locals():
         values = estimate_car_value_curve(msrp, months)
         df['Estimated Car Value'] = values
         df['Negative Equity'] = df['Remaining Balance'] > df['Estimated Car Value']
