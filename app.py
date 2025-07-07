@@ -1,9 +1,29 @@
 import streamlit as st
+import requests
 import pandas as pd
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
 
-# ---------------------- Loan Calculator ----------------------
+@st.cache_data
+def get_car_makes():
+    url = "https://www.carqueryapi.com/api/0.3/?cmd=getMakes"
+    response = requests.get(url)
+    return sorted([make['make_display'] for make in response.json()['Makes']])
+
+@st.cache_data
+def get_models(make, year):
+    url = f"https://www.carqueryapi.com/api/0.3/?cmd=getModels&make={make}&year={year}"
+    response = requests.get(url)
+    models = response.json().get("Models", [])
+    return sorted(list(set([m['model_name'] for m in models])))
+
+@st.cache_data
+def get_trims(make, model, year):
+    url = f"https://www.carqueryapi.com/api/0.3/?cmd=getTrims&make={make}&model={model}&year={year}"
+    response = requests.get(url)
+    trims = response.json().get("Trims", [])
+    return sorted(list(set([t['model_trim'] if t['model_trim'] else 'Standard' for t in trims])))
+
 def calculate_amortization_schedule(principal, annual_rate, years, extra_payment=0.0, start_date="2025-07-01", fees=0.0, balloon_payment=0.0):
     monthly_rate = annual_rate / 12 / 100
     months = years * 12
@@ -52,19 +72,17 @@ def calculate_amortization_schedule(principal, annual_rate, years, extra_payment
     total_paid = df["Payment"].sum()
     return df, total_interest, total_paid, month
 
-# ---------------------- Estimate Car Value ----------------------
 def estimate_car_value_curve(msrp, months):
-    depreciation_curve = [1.0, 0.85, 0.75, 0.65, 0.55]  # fallback curve
+    depreciation_curve = [1.0, 0.85, 0.75, 0.65, 0.55]
     values = []
     for i in range(months):
-        year_idx = min(i // 12, len(depreciation_curve) - 1)
-        next_idx = min(year_idx + 1, len(depreciation_curve) - 1)
+        y = i // 12
+        next_y = min(y + 1, len(depreciation_curve) - 1)
         t = (i % 12) / 12
-        ratio = (1 - t) * depreciation_curve[year_idx] + t * depreciation_curve[next_idx]
+        ratio = (1 - t) * depreciation_curve[y] + t * depreciation_curve[next_y]
         values.append(round(msrp * ratio, 2))
     return values
 
-# ---------------------- Plot Charts ----------------------
 def plot_loan_vs_car_value_chart(df):
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=df['Month'], y=df['Remaining Balance'], mode='lines', name='Loan Balance'))
@@ -80,7 +98,6 @@ def plot_pie_chart(principal, interest):
     fig.update_layout(title='💰 Loan Payment Breakdown')
     return fig
 
-# ---------------------- UI ----------------------
 st.set_page_config(page_title="Loan App", layout="wide")
 st.title("🚗🏠 Smart Loan & Car Value Calculator")
 
@@ -89,6 +106,16 @@ total_price = st.number_input("Car/Home Price ($)", min_value=1000, step=1000, v
 down_payment = st.number_input("Down Payment ($)", min_value=0, step=1000, value=2000)
 principal = total_price - down_payment
 st.markdown(f"**Loan Amount:** ${principal:,.2f}")
+
+if loan_type == "Car Loan":
+    year = st.selectbox("Year", list(range(datetime.now().year, datetime.now().year - 10, -1)))
+    make = st.selectbox("Make", get_car_makes())
+    if make:
+        models = get_models(make, year)
+        model = st.selectbox("Model", models)
+        if model:
+            trims = get_trims(make, model, year)
+            trim = st.selectbox("Trim", trims)
 
 annual_rate = st.number_input("APR (%)", min_value=0.1, max_value=25.0, value=5.0)
 years = st.number_input("Loan Term (Years)", min_value=1, max_value=10, value=5)
@@ -101,13 +128,11 @@ if st.button("Calculate Loan"):
     df, interest, total_paid, months = calculate_amortization_schedule(principal, annual_rate, years, extra_payment, start_date.strftime("%Y-%m-%d"), fees, balloon)
 
     if loan_type == "Car Loan":
-        msrp = total_price
-        values = estimate_car_value_curve(msrp, months)
+        values = estimate_car_value_curve(total_price, months)
         df['Estimated Car Value'] = values
         df['Negative Equity'] = df['Remaining Balance'] > df['Estimated Car Value']
         if df['Negative Equity'].any():
-            neg_month = df[df['Negative Equity']].iloc[0]['Month']
-            st.warning(f"⚠️ Negative equity starts in month {int(neg_month)}")
+            st.warning("⚠️ Negative equity starts in month " + str(int(df[df['Negative Equity']].iloc[0]['Month'])))
         else:
             st.success("✅ No negative equity during loan term")
 
