@@ -8,35 +8,47 @@ from datetime import datetime, timedelta
 # ---------------------- CarQuery API Functions ----------------------
 @st.cache_data(ttl=86400)
 def get_car_makes():
-    response = requests.get("https://www.carqueryapi.com/api/0.3/?cmd=getMakes")
-    text = response.text.strip()
-    if text.startswith("var carquery = "):
-        text = text[len("var carquery = "):]
-    data = json.loads(text)
-    return sorted([make['make_display'] for make in data['Makes']])
+    try:
+        response = requests.get("https://www.carqueryapi.com/api/0.3/?cmd=getMakes")
+        text = response.text.strip()
+        if text.startswith("var carquery = "):
+            text = text[len("var carquery = "):]
+        data = json.loads(text)
+        return sorted([make['make_display'] for make in data['Makes']])
+    except Exception as e:
+        st.error(f"Failed to load car makes: {e}")
+        return []
 
 @st.cache_data(ttl=86400)
 def get_models_for_make(make):
-    response = requests.get(f"https://www.carqueryapi.com/api/0.3/?cmd=getModels&make={make.lower()}")
-    text = response.text.strip()
-    if text.startswith("var carquery = "):
-        text = text[len("var carquery = "):]
-    data = json.loads(text)
-    return sorted(set(model['model_name'] for model in data['Models']))
+    try:
+        response = requests.get(f"https://www.carqueryapi.com/api/0.3/?cmd=getModels&make={make.lower()}")
+        text = response.text.strip()
+        if text.startswith("var carquery = "):
+            text = text[len("var carquery = "):]
+        data = json.loads(text)
+        return sorted(set(model['model_name'] for model in data['Models']))
+    except Exception as e:
+        st.error(f"Failed to load models for {make}: {e}")
+        return []
 
 @st.cache_data(ttl=86400)
 def get_trims_for_model(make, model):
-    response = requests.get(f"https://www.carqueryapi.com/api/0.3/?cmd=getTrims&make={make.lower()}&model={model.lower()}")
-    text = response.text.strip()
-    if text.startswith("var carquery = "):
-        text = text[len("var carquery = "):]
-    data = json.loads(text)
-    trims = data.get('Trims', [])
-    trim_info = [
-        (f"{trim['model_trim']} ({trim['model_year']})", trim['model_year'], trim['model_trim'], trim.get('model_price', 0))
-        for trim in trims if trim['model_trim']
-    ]
-    return sorted(trim_info, key=lambda x: x[1], reverse=True)
+    try:
+        response = requests.get(f"https://www.carqueryapi.com/api/0.3/?cmd=getTrims&make={make.lower()}&model={model.lower()}")
+        text = response.text.strip()
+        if text.startswith("var carquery = "):
+            text = text[len("var carquery = "):]
+        data = json.loads(text)
+        trims = data.get('Trims', [])
+        trim_info = [
+            (f"{trim['model_trim']} ({trim['model_year']})", trim['model_year'], trim['model_trim'], trim.get('model_price', 0))
+            for trim in trims if trim['model_trim']
+        ]
+        return sorted(trim_info, key=lambda x: x[1], reverse=True)
+    except Exception as e:
+        st.error(f"Failed to load trims: {e}")
+        return []
 
 # ---------------------- Loan Calculator ----------------------
 def calculate_amortization_schedule(principal, annual_rate, years, extra_payment=0.0, start_date="2025-07-01", fees=0.0, balloon_payment=0.0):
