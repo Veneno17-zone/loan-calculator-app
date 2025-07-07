@@ -1,62 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
-import requests
-import json
 from datetime import datetime, timedelta
-
-# ---------------------- Safe JSON Loader ----------------------
-def safe_json_load(text, prefix="var carquery = "):
-    try:
-        cleaned = text.strip()
-        if cleaned.startswith(prefix):
-            cleaned = cleaned[len(prefix):]
-        return json.loads(cleaned)
-    except json.JSONDecodeError:
-        st.error("❌ Failed to decode API response. The API may be down or returned invalid data.")
-        return None
-
-# ---------------------- CarQuery API Functions ----------------------
-@st.cache_data(ttl=86400)
-def get_car_makes():
-    try:
-        response = requests.get("https://www.carqueryapi.com/api/0.3/?cmd=getMakes")
-        data = safe_json_load(response.text)
-        if data is None:
-            return []
-        return sorted([make['make_display'] for make in data.get('Makes', [])])
-    except Exception as e:
-        st.error(f"Failed to load car makes: {e}")
-        return []
-
-@st.cache_data(ttl=86400)
-def get_models_for_make(make):
-    try:
-        response = requests.get(f"https://www.carqueryapi.com/api/0.3/?cmd=getModels&make={make.lower()}")
-        data = safe_json_load(response.text)
-        if data is None:
-            return []
-        return sorted(set(model['model_name'] for model in data.get('Models', [])))
-    except Exception as e:
-        st.error(f"Failed to load models for {make}: {e}")
-        return []
-
-@st.cache_data(ttl=86400)
-def get_trims_for_model(make, model):
-    try:
-        response = requests.get(f"https://www.carqueryapi.com/api/0.3/?cmd=getTrims&make={make.lower()}&model={model.lower()}")
-        data = safe_json_load(response.text)
-        if data is None:
-            return []
-        trims = data.get('Trims', [])
-        trim_info = [
-            (f"{trim['model_trim']} ({trim['model_year']})", trim['model_year'], trim['model_trim'], trim.get('model_price', 0))
-            for trim in trims if trim['model_trim']
-        ]
-        return sorted(trim_info, key=lambda x: x[1], reverse=True)
-    except Exception as e:
-        st.error(f"Failed to load trims: {e}")
-        return []
 
 # ---------------------- Loan Calculator ----------------------
 def calculate_amortization_schedule(principal, annual_rate, years, extra_payment=0.0, start_date="2025-07-01", fees=0.0, balloon_payment=0.0):
@@ -152,28 +97,11 @@ fees = st.number_input("Loan Fees ($)", min_value=0, value=0)
 balloon = st.number_input("Balloon Payment ($)", min_value=0, value=0) if loan_type == "Car Loan" else 0
 start_date = st.date_input("Start Date", value=datetime.today())
 
-car_info = None
-if loan_type == "Car Loan":
-    with st.spinner("Loading car data..."):
-        make = st.selectbox("Make", get_car_makes())
-        model_list = get_models_for_make(make)
-        if model_list:
-            model = st.selectbox("Model", model_list)
-            trims = get_trims_for_model(make, model)
-            if trims:
-                trim_name = st.selectbox("Trim (Year)", [t[0] for t in trims])
-                selected_trim = next(t for t in trims if t[0] == trim_name)
-                msrp = float(selected_trim[3]) if selected_trim[3] else total_price
-                st.markdown(f"**MSRP from API:** ${msrp:,.2f}")
-            else:
-                st.warning("No trims found for selected model.")
-        else:
-            st.warning("No models found for selected make.")
-
 if st.button("Calculate Loan"):
     df, interest, total_paid, months = calculate_amortization_schedule(principal, annual_rate, years, extra_payment, start_date.strftime("%Y-%m-%d"), fees, balloon)
 
-    if loan_type == "Car Loan" and 'msrp' in locals():
+    if loan_type == "Car Loan":
+        msrp = total_price
         values = estimate_car_value_curve(msrp, months)
         df['Estimated Car Value'] = values
         df['Negative Equity'] = df['Remaining Balance'] > df['Estimated Car Value']
