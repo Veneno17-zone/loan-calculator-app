@@ -2,11 +2,10 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 import requests
+import json
 from datetime import datetime, timedelta
 
 # ---------------------- CarQuery API Functions ----------------------
-import json
-
 @st.cache_data(ttl=86400)
 def get_car_makes():
     response = requests.get("https://www.carqueryapi.com/api/0.3/?cmd=getMakes")
