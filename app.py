@@ -10,13 +10,12 @@ from datetime import datetime, timedelta
 def get_car_makes():
     try:
         response = requests.get("https://www.carqueryapi.com/api/0.3/?cmd=getMakes")
-        text = response.text.strip()
-        if text.startswith("var carquery = "):
-            text = text[len("var carquery = "):]
-        data = json.loads(text)
-        return sorted([make['make_display'] for make in data['Makes']])
+        data = safe_json_load(response.text)
+        if data is None:
+            return []
+        return sorted([make['make_display'] for make in data.get('Makes', [])])
     except Exception as e:
-        st.error(f"Failed to load car makes: {e}")
+        st.error(f"API Error: {e}")
         return []
 
 @st.cache_data(ttl=86400)
