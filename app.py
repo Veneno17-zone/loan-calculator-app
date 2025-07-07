@@ -5,6 +5,17 @@ import requests
 import json
 from datetime import datetime, timedelta
 
+# ---------------------- Safe JSON Loader ----------------------
+def safe_json_load(text, prefix="var carquery = "):
+    try:
+        cleaned = text.strip()
+        if cleaned.startswith(prefix):
+            cleaned = cleaned[len(prefix):]
+        return json.loads(cleaned)
+    except json.JSONDecodeError:
+        st.error("❌ Failed to decode API response. The API may be down or returned invalid data.")
+        return None
+
 # ---------------------- CarQuery API Functions ----------------------
 @st.cache_data(ttl=86400)
 def get_car_makes():
@@ -15,18 +26,17 @@ def get_car_makes():
             return []
         return sorted([make['make_display'] for make in data.get('Makes', [])])
     except Exception as e:
-        st.error(f"API Error: {e}")
+        st.error(f"Failed to load car makes: {e}")
         return []
 
 @st.cache_data(ttl=86400)
 def get_models_for_make(make):
     try:
         response = requests.get(f"https://www.carqueryapi.com/api/0.3/?cmd=getModels&make={make.lower()}")
-        text = response.text.strip()
-        if text.startswith("var carquery = "):
-            text = text[len("var carquery = "):]
-        data = json.loads(text)
-        return sorted(set(model['model_name'] for model in data['Models']))
+        data = safe_json_load(response.text)
+        if data is None:
+            return []
+        return sorted(set(model['model_name'] for model in data.get('Models', [])))
     except Exception as e:
         st.error(f"Failed to load models for {make}: {e}")
         return []
@@ -35,10 +45,9 @@ def get_models_for_make(make):
 def get_trims_for_model(make, model):
     try:
         response = requests.get(f"https://www.carqueryapi.com/api/0.3/?cmd=getTrims&make={make.lower()}&model={model.lower()}")
-        text = response.text.strip()
-        if text.startswith("var carquery = "):
-            text = text[len("var carquery = "):]
-        data = json.loads(text)
+        data = safe_json_load(response.text)
+        if data is None:
+            return []
         trims = data.get('Trims', [])
         trim_info = [
             (f"{trim['model_trim']} ({trim['model_year']})", trim['model_year'], trim['model_trim'], trim.get('model_price', 0))
