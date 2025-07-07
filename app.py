@@ -5,21 +5,38 @@ import requests
 from datetime import datetime, timedelta
 
 # ---------------------- CarQuery API Functions ----------------------
+import json
+
 @st.cache_data(ttl=86400)
 def get_car_makes():
     response = requests.get("https://www.carqueryapi.com/api/0.3/?cmd=getMakes")
-    return sorted([make['make_display'] for make in response.json()['Makes']])
+    text = response.text.strip()
+    if text.startswith("var carquery = "):
+        text = text[len("var carquery = "):]
+    data = json.loads(text)
+    return sorted([make['make_display'] for make in data['Makes']])
 
 @st.cache_data(ttl=86400)
 def get_models_for_make(make):
     response = requests.get(f"https://www.carqueryapi.com/api/0.3/?cmd=getModels&make={make.lower()}")
-    return sorted(set(model['model_name'] for model in response.json()['Models']))
+    text = response.text.strip()
+    if text.startswith("var carquery = "):
+        text = text[len("var carquery = "):]
+    data = json.loads(text)
+    return sorted(set(model['model_name'] for model in data['Models']))
 
 @st.cache_data(ttl=86400)
 def get_trims_for_model(make, model):
     response = requests.get(f"https://www.carqueryapi.com/api/0.3/?cmd=getTrims&make={make.lower()}&model={model.lower()}")
-    trims = response.json().get('Trims', [])
-    trim_info = [(f"{trim['model_trim']} ({trim['model_year']})", trim['model_year'], trim['model_trim'], trim.get('model_price', 0)) for trim in trims if trim['model_trim']]
+    text = response.text.strip()
+    if text.startswith("var carquery = "):
+        text = text[len("var carquery = "):]
+    data = json.loads(text)
+    trims = data.get('Trims', [])
+    trim_info = [
+        (f"{trim['model_trim']} ({trim['model_year']})", trim['model_year'], trim['model_trim'], trim.get('model_price', 0))
+        for trim in trims if trim['model_trim']
+    ]
     return sorted(trim_info, key=lambda x: x[1], reverse=True)
 
 # ---------------------- Loan Calculator ----------------------
